@@ -7,6 +7,12 @@ pipeline {
         disableConcurrentBuilds()
     }
 
+    environment {
+        PROD_HOST = '45.220.54.15'
+        PROD_USER = 'laravel-deploy'
+        PROD_DIR  = '/var/www/laravel'
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -14,19 +20,14 @@ pipeline {
             }
         }
 
-        stage('Check Environment') {
+        stage('Validate Project') {
             steps {
                 sh '''
                     set -eu
 
-                    echo "===== PHP ====="
                     php -v
-
-                    echo "===== Composer ====="
                     composer --version
-
-                    echo "===== Laravel Version ====="
-                    grep -n '"laravel/framework"' composer.json
+                    composer validate --no-check-publish
                 '''
             }
         }
@@ -35,9 +36,6 @@ pipeline {
             steps {
                 sh '''
                     set -eu
-
-                    composer validate --no-check-publish
-
                     composer install \
                         --no-interaction \
                         --prefer-dist \
@@ -50,12 +48,39 @@ pipeline {
             steps {
                 sh '''
                     set -eu
-
                     if [ -d tests ]; then
                         php artisan test
                     else
-                        echo "No tests directory found; skipping tests."
+                        echo "No tests directory; skipping tests."
                     fi
+                '''
+            }
+        }
+
+        stage('Deploy Files') {
+            steps {
+                sh '''
+                    set -eu
+
+                    echo "Preparing Production directory..."
+
+                    ssh -i /var/lib/jenkins/.ssh/id_ed25519 \
+                        -o IdentitiesOnly=yes \
+                        -o BatchMode=yes \
+                        "$PROD_USER@$PROD_HOST" \
+                        "mkdir -p '$PROD_DIR'"
+
+                    echo "Copying Laravel files..."
+
+                    rsync -az --delete \
+                        --exclude='.env' \
+                        --exclude='.git/' \
+                        --exclude='storage/' \
+                        --exclude='bootstrap/cache/' \
+                        -e "ssh -i /var/lib/jenkins/.ssh/id_ed25519 -o IdentitiesOnly=yes -o BatchMode=yes" \
+                        ./ "$PROD_USER@$PROD_HOST:$PROD_DIR/"
+
+                    echo "Deployment files copied successfully."
                 '''
             }
         }
@@ -63,9 +88,8 @@ pipeline {
 
     post {
         success {
-            echo 'Laravel CI pipeline completed successfully!'
+            echo 'CI and file deployment completed successfully.'
         }
-
         failure {
             echo 'Pipeline failed. Check Console Output.'
         }
