@@ -44,18 +44,20 @@ pipeline {
             }
         }
 
-        stage('Run Tests') {
-            steps {
-                sh '''
-                    set -eu
-                    if [ -d tests ]; then
+
+            stage('Run Tests') {
+                steps {
+                    sh '''
+                        set -eu
+
+                        cp .env.example .env
+                        php artisan key:generate
+
                         php artisan test
-                    else
-                        echo "No tests directory; skipping tests."
-                    fi
-                '''
+                    '''
+                }
             }
-        }
+
 
         stage('Deploy Files') {
             steps {
