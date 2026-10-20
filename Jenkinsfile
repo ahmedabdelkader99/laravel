@@ -86,7 +86,42 @@ pipeline {
                 '''
             }
         }
+
+
+stage('Verify Production Deployment') {
+    steps {
+        sh '''
+            set -eu
+
+            ssh -i /var/lib/jenkins/.ssh/id_ed25519 \
+                -o IdentitiesOnly=yes \
+                -o BatchMode=yes \
+                "$PROD_USER@$PROD_HOST" \
+                "set -eu
+                 cd '$PROD_DIR'
+
+                 test -f artisan
+                 test -f public/index.php
+                 test -f vendor/autoload.php
+
+                 echo 'Laravel application files verified.'
+                 echo 'Checking production environment...'
+
+                 if [ -f .env ]; then
+                     echo 'Production .env exists.'
+                 else
+                     echo 'Production .env is missing.'
+                 fi
+
+                 php -v
+                 "
+        '''
     }
+}
+
+    }
+
+    
 
     post {
         success {
