@@ -88,7 +88,8 @@ pipeline {
         }
 
 
-stage('Verify Production Deployment') {
+
+stage('Verify Production Environment') {
     steps {
         sh '''
             set -eu
@@ -100,24 +101,32 @@ stage('Verify Production Deployment') {
                 "set -eu
                  cd '$PROD_DIR'
 
+                 echo 'Checking Laravel files...'
                  test -f artisan
                  test -f public/index.php
                  test -f vendor/autoload.php
 
-                 echo 'Laravel application files verified.'
-                 echo 'Checking production environment...'
+                 echo 'Checking production .env...'
+                 test -f .env
 
-                 if [ -f .env ]; then
-                     echo 'Production .env exists.'
-                 else
-                     echo 'Production .env is missing.'
-                 fi
+                 echo 'Checking PHP version...'
+                 php -r '
+                   if (PHP_VERSION_ID < 80300) {
+                     fwrite(STDERR, \"ERROR: PHP 8.3+ is required. Installed: \" . PHP_VERSION . PHP_EOL);
+                     exit(1);
+                   }
+                   echo \"PHP version is compatible: \" . PHP_VERSION . PHP_EOL;
+                 '
 
-                 php -v
-                 "
+                 echo 'Checking MariaDB...'
+                 systemctl is-active --quiet mariadb
+
+                 echo 'Production prerequisite checks passed.'
+                "
         '''
     }
 }
+
 
     }
 
