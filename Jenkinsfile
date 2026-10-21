@@ -125,6 +125,25 @@ stage('Verify Production Environment') {
     }
 }
 
+stage('Run Database Migrations') {
+    steps {
+        sh '''
+            set -eu
+
+            ssh -i /var/lib/jenkins/.ssh/id_ed25519 \
+                -o IdentitiesOnly=yes \
+                -o BatchMode=yes \
+                "$PROD_USER@$PROD_HOST" \
+                "cd '$PROD_DIR' && \
+                 echo 'Checking migration status...' && \
+                 php artisan migrate:status && \
+                 echo 'Running pending migrations...' && \
+                 php artisan migrate --force && \
+                 echo 'Database migrations completed successfully.'"
+        '''
+    }
+}
+
 
     }
 
