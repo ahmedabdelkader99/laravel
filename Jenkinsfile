@@ -110,13 +110,11 @@ stage('Verify Production Environment') {
                  test -f .env
 
                  echo 'Checking PHP version...'
-                 php -r '
-                   if (PHP_VERSION_ID < 80300) {
-                     fwrite(STDERR, \"ERROR: PHP 8.3+ is required. Installed: \" . PHP_VERSION . PHP_EOL);
-                     exit(1);
-                   }
-                   echo \"PHP version is compatible: \" . PHP_VERSION . PHP_EOL;
-                 '
+                 php -r 'exit(PHP_VERSION_ID >= 80300 ? 0 : 1);' || {
+                     echo 'ERROR: Laravel 13 requires PHP 8.3 or newer.'
+                     php -v
+                     exit 1
+                 }
 
                  echo 'Checking MariaDB...'
                  systemctl is-active --quiet mariadb
