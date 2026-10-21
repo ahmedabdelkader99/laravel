@@ -127,6 +127,7 @@ stage('Verify Production Environment') {
     }
 }
 
+
 stage('Run Database Migrations') {
     steps {
         sh '''
@@ -136,15 +137,21 @@ stage('Run Database Migrations') {
                 -o IdentitiesOnly=yes \
                 -o BatchMode=yes \
                 "$PROD_USER@$PROD_HOST" \
-                "cd '$PROD_DIR' && \
-                 echo 'Checking migration status...' && \
-                 php artisan migrate:status && \
-                 echo 'Running pending migrations...' && \
-                 php artisan migrate --force && \
-                 echo 'Database migrations completed successfully.'"
+                "set -eu
+                 cd '$PROD_DIR'
+
+                 echo 'Running pending database migrations...'
+                 php artisan migrate --force
+
+                 echo 'Verifying migration status...'
+                 php artisan migrate:status
+
+                 echo 'Database migrations completed successfully.'
+                "
         '''
     }
 }
+
 
 
     }
