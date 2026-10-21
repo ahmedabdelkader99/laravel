@@ -74,7 +74,7 @@ pipeline {
 
                     echo "Copying Laravel files..."
 
-                    rsync -az --delete \
+                    rsync -az \
                         --exclude='.env' \
                         --exclude='.git/' \
                         --exclude='storage/' \
